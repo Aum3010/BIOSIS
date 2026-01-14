@@ -302,6 +302,9 @@ if 'calibration_data' not in st.session_state: st.session_state['calibration_dat
 
 # --- SIDEBAR ---
 with st.sidebar:
+    st.markdown("---")    
+    draw_help_center()
+    run_sim = st.button("🚀 Run Simulation", type="primary", use_container_width=True)
     api_key = os.getenv("OPENAI_API_KEY")    
     st.subheader("Protein")
     pdb_input = st.text_input("PDB ID", st.session_state['current_pdb']).upper()
@@ -362,10 +365,7 @@ with st.sidebar:
     with st.expander("Crowding Settings"):
         target_density = st.slider("Density (pmol/cm²)", 0.1, 20.0, 5.0)
     
-    st.markdown("---")    
-    draw_help_center()
-    
-    run_sim = st.button("🚀 Run Simulation", type="primary", use_container_width=True)
+
 
 st.title("BIOSIS (Biomolecule Interaction On Surfaces Insight System)")
 
