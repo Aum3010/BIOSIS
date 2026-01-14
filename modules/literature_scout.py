@@ -96,6 +96,5 @@ class LiteratureScout:
             return
 
         for p in all_hits[:4]:
-            with st.expander(f"{p['year']} | {p['journal']}"):
-                st.markdown(f"**{p['title']}**")
+            with st.expander(f"**{p['title']}**"):
                 if p['doi']: st.markdown(f"🔗 [Read Source]({p['doi']})")

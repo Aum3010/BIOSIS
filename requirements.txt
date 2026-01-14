@@ -9,3 +9,4 @@ stmol>=0.0.9
 requests>=2.31.0
 altair>=5.2.0
 openai>=1.10.0
+python-dotenv>=1.0.0

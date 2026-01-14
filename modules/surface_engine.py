@@ -30,9 +30,16 @@ class SurfaceEngine:
             "charge_density": "High" if Descriptors.TPSA(mol) > 50 else "Low"
         }
 
+    def _is_uff_compatible(self, mol):
+        """Skip UFF for metals/metalloids to avoid SP3 warnings."""
+        allowed_atoms = {1, 6, 7, 8, 9, 15, 16, 17, 35, 53} # Organic subset
+        for atom in mol.GetAtoms():
+            if atom.GetAtomicNum() not in allowed_atoms:
+                return False
+        return True
+
     def generate_3d_grid(self, smiles: str):
         """
-        CREATIVE VISUALIZATION:
         Creates a PDB block representing a 'Surface Patch' (3x3 grid of molecules)
         to visualize the material in the 3D viewer.
         """
@@ -40,17 +47,17 @@ class SurfaceEngine:
         if not mol: return ""
         mol = Chem.AddHs(mol)
         
-        # --- FIX: ROBUST COORDINATE GENERATION ---
         try:
-            # Embed
+            # Embed (Geometry)
             res = AllChem.EmbedMolecule(mol)
             if res == -1: AllChem.EmbedMolecule(mol, useRandomCoords=True)
             
-            # Optimize (Skip if fails)
-            try:
-                AllChem.UFFOptimizeMolecule(mol)
-            except:
-                pass 
+            # Optimize (Physics) - Only for Organics
+            if self._is_uff_compatible(mol):
+                try:
+                    AllChem.UFFOptimizeMolecule(mol)
+                except:
+                    pass 
         except:
             return ""
         
@@ -59,7 +66,6 @@ class SurfaceEngine:
     def suggest_modification(self, current_props: dict, goal: str):
         """
         The 'Recommendation Layer' Logic.
-        Suggests chemical changes based on desired outcome.
         """
         suggestions = []
         if goal == "Increase Retention":
@@ -67,5 +73,5 @@ class SurfaceEngine:
                 suggestions.append("Surface is too polar. Add Alkyl chains (-CCCCC) to increase Hydrophobic interaction.")
             if current_props['h_donors'] == 0:
                 suggestions.append("Add Hydroxyl (-OH) or Amine (-NH2) groups to enable Hydrogen Bonding.")
-                
+    
         return suggestions
