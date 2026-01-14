@@ -80,7 +80,7 @@ BIOSIS uses a modular architecture where each Python script handles a specific d
 *   **Heuristic Optimization:** The Genetic Algorithm finds a _near-optimal_ orientation, but it does not guarantee finding the global energy minimum (a common trade-off for real-time performance).
     
 
-## Future Improvements (With More Time)
+## Future Improvements 
 ---------------------------------------
 
 1.  **Molecular Dynamics (MD) Integration:**
@@ -107,7 +107,7 @@ BIOSIS uses a modular architecture where each Python script handles a specific d
 
 ### Phase 1
 
-Everything begins with the protein. Before we can simulate any interaction, we must understand the structural constraints and evolutionary importance of the biomolecule to ensure we preserve its function.
+The app begins with the protein. Before we can simulate any interaction, we must understand the structural constraints and evolutionary importance of the biomolecule to ensure we preserve its function.
 
 **1\. Structural Logic and Active Site Preservation**
 
