@@ -5,6 +5,9 @@
 
 ![BIOSIS Banner](https://img.shields.io/badge/Status-Prototype_Ready-success) ![Python](https://img.shields.io/badge/Python-3.10-blue) ![Streamlit](https://img.shields.io/badge/Streamlit-1.32-red)
 
+# Deployed App
+👉 **Click here to launch:** [BIOSIS Live App](https://biosis.streamlit.app/)
+
 BIOSIS is a comprehensive platform that bridges **Molecular Biophysics** (Structure), **Evolutionary Biology** (Conservation), and **Surface Science** (Cheminformatics). It allows researchers to:
 
 1. **Visualize** how specific enzymes (like *Carbonic Anhydrase*) orient on any chemical surface.
@@ -94,8 +97,12 @@ BIOSIS uses a modular architecture where each Python script handles a specific d
         
 4.  **Batch Processing:**
     
-    *   Enable the upload of a CSV of 100+ candidates to run a high-throughput virtual screening overnight.
+    *   Enable the upload of a CSV of 100+ candidates to run a high-throughput virtual screening.
 
+4.  **Add Zotero Intehration:**
+    
+    *   To add Zotero integration to the literature scout so one can directly connect zotero and add the papers to their zotero group.
+  
 ## Implementation Details
 
 ### Phase 1
