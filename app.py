@@ -360,10 +360,10 @@ with st.sidebar:
     st.subheader("Reactor")
     ph = st.slider("pH", 4.0, 10.0, 7.4)
     density = st.select_slider("Crowding", ["Single", "High (Monolayer)"])
-    topology = st.selectbox("Topology", ["Flat", "Nanopore", "Nanopillar"])
-    
     with st.expander("Crowding Settings"):
         target_density = st.slider("Density (pmol/cm²)", 0.1, 20.0, 5.0)
+
+    topology = st.selectbox("Topology", ["Flat", "Nanopore", "Nanopillar"])
     
 
 
