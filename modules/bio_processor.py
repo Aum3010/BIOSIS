@@ -7,7 +7,6 @@ import pandas as pd
 import streamlit as st
 from Bio.PDB import PDBList, MMCIFParser, ShrakeRupley, PDBIO, PDBParser
 
-# --- DATA SCALES ---
 # Eisenberg Hydrophobicity Scale (Normalized)
 # Values range from -1.76 (Arg) to 0.73 (Ile)
 HYDROPHOBICITY_SCALE = {
@@ -17,7 +16,6 @@ HYDROPHOBICITY_SCALE = {
     'ASN': -0.64, 'GLN': -0.69, 'ASP': -0.72, 'LYS': -1.10, 'ARG': -1.76
 }
 
-# --- HELPER FUNCTIONS ---
 def _get_charge(resname):
     if resname in ['ARG', 'LYS']: return 1
     if resname in ['ASP', 'GLU']: return -1
@@ -40,7 +38,6 @@ def _fetch_metadata(pdb_id):
         pass
     return {"title": "Unknown", "resolution": 9.99, "method": "Unknown"}
 
-# --- CONSERVATION ENGINE (NEW) ---
 @st.cache_data(ttl=3600)
 def get_conservation_scores(pdb_id):
     """
@@ -49,8 +46,6 @@ def get_conservation_scores(pdb_id):
     2. Calculate Conservation (0.0 - 1.0).
     """
     return None
-
-# --- WORKER FUNCTIONS ---
 
 def _analyze_structure(structure, zinc_atoms, conservation_map=None):
     sr = ShrakeRupley()
@@ -77,13 +72,11 @@ def _analyze_structure(structure, zinc_atoms, conservation_map=None):
                         dists = [np.linalg.norm(coords - z) for z in zn_vecs]
                         min_dist = min(dists)
                 
-                # --- CONSERVATION LOGIC ---
                 cons_score = 0.5 
                 if min_dist < 8.0: cons_score = 0.95 
                 elif sasa < 5.0: cons_score = 0.85 
                 elif sasa > 50.0: cons_score = 0.1 
 
-                # --- HYDROPHOBICITY LOGIC (NEW) ---
                 # Normalize Eisenberg scale to 0-100 for visualization
                 # Range: -1.76 to 0.73 (Span ~2.5)
                 h_raw = HYDROPHOBICITY_SCALE.get(residue.resname, 0.0)
@@ -116,7 +109,6 @@ def _analyze_structure(structure, zinc_atoms, conservation_map=None):
     
     return df_surface, pdb_string
 
-# --- VISUALIZATION HELPER (NEW) ---
 def map_metric_to_bfactor(pdb_string, df_surface, metric_col):
     """
     Dynamically rewrites B-factors in the PDB string to visualize a specific metric.
@@ -189,7 +181,6 @@ def process_pdb_string(pdb_string: str):
     
     return df_surface, pdb_string, zinc_coords
 
-# --- PHASE 4: REAL MUTAGENESIS ---
 def mutate_residue(pdb_string, residue_id_str, new_res_type):
     parser = PDBParser(QUIET=True)
     stream = io.StringIO(pdb_string)
@@ -212,7 +203,6 @@ def mutate_residue(pdb_string, residue_id_str, new_res_type):
     io_w.save(out)
     return out.getvalue()
 
-# --- PHASE 2: VISUAL SNAP LOGIC ---
 def get_rotated_pdb(pdb_string, rotation_matrix):
     parser = PDBParser(QUIET=True)
     stream = io.StringIO(pdb_string)

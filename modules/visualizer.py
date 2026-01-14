@@ -6,9 +6,6 @@ import math
 from Bio.PDB import PDBParser
 import io
 
-# Silence RDKit warnings
-rdBase.DisableLog('rdApp.*')
-
 class SurfaceVisualizer:
     
     def _is_uff_compatible(self, mol):
@@ -102,9 +99,7 @@ class SurfaceVisualizer:
             
             for j, atom in enumerate(atoms):
                 x, y, z = new_coords[j]
-                # PDB Format manual write
                 res_seq = atom.get_parent().id[1]
-                # Ensure res_seq fits in 4 chars
                 res_seq_str = str(res_seq)[-4:]
                 
                 line = (f"ATOM  {serial_counter:>5} {atom.name:<4}{' '}"

@@ -48,11 +48,9 @@ class SurfaceEngine:
         mol = Chem.AddHs(mol)
         
         try:
-            # Embed (Geometry)
             res = AllChem.EmbedMolecule(mol)
             if res == -1: AllChem.EmbedMolecule(mol, useRandomCoords=True)
             
-            # Optimize (Physics) - Only for Organics
             if self._is_uff_compatible(mol):
                 try:
                     AllChem.UFFOptimizeMolecule(mol)

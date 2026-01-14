@@ -1,10 +1,12 @@
-import streamlit as st
-import pandas as pd
+import os
 import time
 import hashlib
 import json
 import datetime
 import altair as alt
+import pandas as pd
+import streamlit as st
+from dotenv import load_dotenv
 from modules.bio_processor import process_protein_structure, process_pdb_string, mutate_residue, get_rotated_pdb, map_metric_to_bfactor
 from modules.surface_engine import SurfaceEngine
 from modules.interaction_lab import InteractionLab
@@ -14,8 +16,6 @@ from modules.optimizer import GeneticOptimizer
 from modules.generator import MaterialGenerator
 from stmol import showmol
 import py3Dmol
-import os
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -391,7 +391,6 @@ else:
             linker_length=linker_len, linker_type=linker_flex
         )
 
-    # --- SCOREBOARD ---
     st.caption("Legend: 🤖 Inferred using AI | 🧮 Calculated | 📏 Measured")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("BIOSIS Score 🤖", f"{score:.0f}", help="Success Probability")

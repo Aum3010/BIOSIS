@@ -10,7 +10,6 @@ class GeneticOptimizer:
     """
 
     def __init__(self, protein_df: pd.DataFrame, zinc_coords_input):
-        # 1. Extract Anchor Coordinates
         anchors_df = protein_df[protein_df['SASA'] > 10.0]
         if not anchors_df.empty and 'coords' in anchors_df.columns:
             self.anchor_coords = np.vstack(anchors_df['coords'].values)
@@ -19,9 +18,7 @@ class GeneticOptimizer:
             self.anchor_coords = np.array([])
             self.anchor_charges = np.array([])
 
-        # 2. Extract Zinc Coordinates (Handle input as list of lists OR list of objects)
         if zinc_coords_input and len(zinc_coords_input) > 0:
-            # Check if input is list of lists (from cached JSON) or Atom objects
             if hasattr(zinc_coords_input[0], 'get_coord'):
                  self.zinc_coords = np.array([z.get_coord() for z in zinc_coords_input])
             else:
@@ -29,7 +26,6 @@ class GeneticOptimizer:
         else:
             self.zinc_coords = np.array([])
         
-        # 3. Calculate Center of Mass (COM)
         all_points = []
         if len(self.anchor_coords) > 0: all_points.append(self.anchor_coords)
         if len(self.zinc_coords) > 0: all_points.append(self.zinc_coords)
@@ -45,9 +41,8 @@ class GeneticOptimizer:
         """
         score = 0
         
-        # VIRTUAL SURFACE PLANE is at Z = -10 (relative to protein COM being at 0)
         SURFACE_Z = -10.0
-        INTERACTION_ZONE = -5.0 # Region where binding happens
+        INTERACTION_ZONE = -5.0 
         
         # --- 1. Apply Rotation ---
         # Shift to origin -> Rotate -> Shift back
@@ -58,7 +53,7 @@ class GeneticOptimizer:
             z_centered = self.zinc_coords - self.com
             z_rotated = z_centered @ rotation_matrix.T
             
-            # CRITICAL CONSTRAINT: Zinc must point AWAY from surface
+            # Zinc must point AWAY from surface
             # If Zinc is the lowest point, it hits the surface -> PENALTY
             min_z = np.min(z_rotated[:, 2])
             if min_z < -5.0: # If Zinc is pointing down
@@ -80,10 +75,10 @@ class GeneticOptimizer:
             # Calculate Electrostatic Score for touching residues
             charges = self.anchor_charges[interacting_indices]
             
-            if target_charge_type == "positive": # Surface is +
+            if target_charge_type == "positive": 
                 score += np.sum(charges == -1) * 10  # Reward Negatives (Asp, Glu)
                 score -= np.sum(charges == 1) * 10   # Punish Positives
-            elif target_charge_type == "negative": # Surface is -
+            elif target_charge_type == "negative":
                 score += np.sum(charges == 1) * 10   # Reward Positives (Lys, Arg)
                 score -= np.sum(charges == -1) * 10
             elif target_charge_type == "hydrophobic":
@@ -99,18 +94,15 @@ class GeneticOptimizer:
         best_matrix = np.eye(3)
         history = []
         
-        # Determine target
         target = "hydrophobic"
         if "polar" in surface_type or "positive" in surface_type: target = "positive"
         if "negative" in surface_type: target = "negative"
 
-        # Initialize Population (Random Euler Angles)
         population = np.random.uniform(0, 360, (pop_size, 3))
         
         for g in range(generations):
             gen_scores = []
             
-            # Evaluate
             for i in range(pop_size):
                 r = R.from_euler('xyz', population[i], degrees=True)
                 matrix = r.as_matrix()

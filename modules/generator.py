@@ -6,7 +6,6 @@ class MaterialGenerator:
     Inverse Design Engine.
     Uses RDKit Reaction SMARTS to perform virtual synthesis on surface scaffolds.
     """
-    
     def __init__(self):
         # Library of Virtual Reactions (Reaction SMARTS)
         # Format: [Reactant] >> [Product]
@@ -87,6 +86,6 @@ class MaterialGenerator:
                             break 
                     except:
                         continue
-                if len(candidates) >= 5: break # Limit total candidates
+                if len(candidates) >= 5: break 
             
         return candidates

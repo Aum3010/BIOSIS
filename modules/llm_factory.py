@@ -23,7 +23,6 @@ class LLMFactory:
                 "confidence": "0%"
             }
 
-        # System Prompt: Define the persona and force JSON
         system_prompt = """
         You are an expert Structural Biologist. 
         Your task is to suggest point mutations to fix protein-surface interaction issues.
@@ -35,7 +34,6 @@ class LLMFactory:
         }
         """
 
-        # User Prompt: The specific physics problem
         user_prompt = f"""
         Context: Residue {residue}-{res_id} is facing a {surface_type} surface.
         Problem Detected: {failure_mode}.

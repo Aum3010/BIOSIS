@@ -5,9 +5,6 @@ from scipy.optimize import minimize
 from modules.llm_factory import LLMFactory
 
 class InteractionLab:
-    """
-    The 'Reasoning Engine' v15.0 (Self-Learning / Lab-in-the-Loop).
-    """
     
     def __init__(self):
         # Default Weights (The "Prior")
@@ -76,20 +73,16 @@ class InteractionLab:
         warnings = []
         ai_suggestions = []
         
-        # Track raw physical components for calibration
-        # This allows us to re-weight them later without re-running physics
         components = {"electrostatic": 0.0, "hydrophobic": 0.0, "steric": 0.0}
         
         if surface_props is None or protein_features.empty:
             return 0, ["Insufficient data."], [], [], components
 
-        # 1. Transform Coordinates
         coords = np.vstack(protein_features['coords'].values)
         if rotation_matrix is not None:
             com = np.mean(coords, axis=0)
             coords = (coords - com) @ rotation_matrix.T + com
             
-        # 2. Kill Zone (Active Site) - Steric/Geometry
         zinc_mask = protein_features['Dist_to_Zinc'] < 0.1 
         if not zinc_mask.all() and zinc_mask.any():
              zinc_indices = protein_features[zinc_mask].index
@@ -103,7 +96,6 @@ class InteractionLab:
                      components['steric'] -= penalty
                      warnings.append("Orientation Risk: Active site faces surface.")
 
-        # 3. Linker Engine (Steric/Entropy)
         if linker_length > 0:
             bonus = min(25, linker_length * 1.25)
             # Linker acts as a steric buffer
@@ -122,7 +114,6 @@ class InteractionLab:
                 components['steric'] -= wobble
                 warnings.append(f"Entropy Penalty: Linker instability.")
 
-        # 4. Interface Physics (Hydrophobic)
         bottom_threshold = -5.0 - linker_length
         z_vals = coords[:, 2]
         interface_mask = z_vals < (bottom_threshold + 5.0) 
@@ -148,7 +139,6 @@ class InteractionLab:
                 components['hydrophobic'] += bonus
                 reasons.append("Hydrophobic Anchor.")
 
-        # 5. Electrostatics (Dynamic pH)
         if linker_length == 0:
             if interface_residues.empty:
                  return 20, ["Poor Orientation."], ["Optimize orientation."], [], components
@@ -176,7 +166,6 @@ class InteractionLab:
                         if not any(s['mutation_code'] == insight['mutation_code'] for s in ai_suggestions):
                             ai_suggestions.append(insight)
                             
-            # Bulk Electrostatics
             is_surface_polar = (surface_props.get('tpsa', 0) > 40)
             if is_surface_polar:
                 val = 30
@@ -198,7 +187,6 @@ class InteractionLab:
         """
         if len(training_data) < 2: return "Need at least 2 data points."
 
-        # Loss Function: MSE between Predicted Score and Actual Lab Result
         def loss_function(weights_array):
             w_e, w_h, w_s = weights_array
             error_sum = 0
@@ -216,14 +204,12 @@ class InteractionLab:
                 
             return error_sum
 
-        # Initial Guess (Current Weights)
         x0 = [self.weights['electrostatic'], self.weights['hydrophobic'], self.weights['steric']]
         
         # Bounds (Prevent negative weights or infinite scaling)
         # We allow weights to vary from 0.1x to 5.0x
         bnds = ((0.1, 5.0), (0.1, 5.0), (0.1, 5.0))
         
-        # Run Optimization
         res = minimize(loss_function, x0, bounds=bnds, method='L-BFGS-B')
         
         if res.success:

@@ -4,10 +4,8 @@ import time
 
 class LiteratureScout:
     """
-    The 'Oracle' Module.
-    Fetches context-aware literature without forcing sidebar placement.
+    Fetches literature sources.
     """
-    
     def __init__(self):
         self.openalex_url = "https://api.openalex.org/works"
         self.crossref_url = "https://api.crossref.org/works"
@@ -53,7 +51,6 @@ class LiteratureScout:
 
         if len(results) >= 3: return results
 
-        # 2. Try Crossref
         try:
             params = {"query": query, "rows": 3}
             r = requests.get("https://api.crossref.org/works", params=params, timeout=3)
@@ -73,7 +70,7 @@ class LiteratureScout:
 
     def render_feed(self, protein, surface_raw_name):
         """
-        Renders the feed in the CURRENT container (not sidebar).
+        Renders the feed.
         """
         st.markdown("#### 📚 Literature Context")
         
