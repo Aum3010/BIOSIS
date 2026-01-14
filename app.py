@@ -21,7 +21,7 @@ load_dotenv()
 
 def draw_help_center():
     """Renders the pragmatic Help Guide mapped to UI locations."""
-    with st.popover("Help & Guide", use_container_width=True):
+    with st.popover("Help & Guide", width='stretch):
         st.markdown("### 📘 BIOSIS User Manual")
         st.caption("Comprehensive guide to buttons, physics, and workflows.")
         
@@ -303,7 +303,7 @@ if 'calibration_data' not in st.session_state: st.session_state['calibration_dat
 # --- SIDEBAR ---
 with st.sidebar:
     draw_help_center()
-    run_sim = st.button("🚀 Run Simulation", type="primary", use_container_width=True)
+    run_sim = st.button("🚀 Run Simulation", type="primary", width='stretch)
     api_key = os.getenv("OPENAI_API_KEY")    
     st.subheader("Protein")
     pdb_input = st.text_input("PDB ID", st.session_state['current_pdb']).upper()
@@ -466,7 +466,7 @@ else:
             st.markdown("#### Stability Profile")
             res = [{"pH": p, "Score": lab_brain.calculate_interface_score(df_surface, surface_props, best_rot, float(p), density, topology, api_key, linker_length=linker_len)[0]} for p in range(4, 11)]
             c = alt.Chart(pd.DataFrame(res)).mark_line(point=True).encode(x='pH', y='Score').properties(height=200)
-            st.altair_chart(c, use_container_width=True)
+            st.altair_chart(c, width='stretch)
             if warnings:
                 st.error(f"{len(warnings)} Critical Flags")
                 for w in warnings: st.caption(f"🚨 {w}")
@@ -538,6 +538,6 @@ else:
         with tab_export:
             st.markdown("#### Manufacturing")
             audit_txt = generate_audit_report(pdb_input, s_choice, linker_label, ph, score, warnings)
-            st.download_button("Compliance Report", audit_txt, "audit_report.txt", use_container_width=True)
+            st.download_button("Compliance Report", audit_txt, "audit_report.txt", width='stretch)
             bot_script = generate_opentrons_protocol(pdb_input, linker_label, ph)
-            st.download_button("Opentron Protocol code (.py)", bot_script, f"opentrons_{pdb_input}.py", use_container_width=True)
+            st.download_button("Opentron Protocol code (.py)", bot_script, f"opentrons_{pdb_input}.py", width='stretch)
