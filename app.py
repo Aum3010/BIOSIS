@@ -302,7 +302,6 @@ if 'calibration_data' not in st.session_state: st.session_state['calibration_dat
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.markdown("---")    
     draw_help_center()
     run_sim = st.button("🚀 Run Simulation", type="primary", use_container_width=True)
     api_key = os.getenv("OPENAI_API_KEY")    
