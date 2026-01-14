@@ -97,9 +97,8 @@ def draw_help_center():
             * **What it shows:** Eisenberg Hydrophobicity Scale.
             * **Purpose:** detecting "Hydrophobic Mismatch."
             * **Color Code:**
-                * 🟠 **Orange:** Hydrophobic (Oily/Sticky).
-                * 🟢 **Green:** Polar (Water-loving).
-            * **Example:** *If you see an Orange patch touching a Green (Polar) surface, the protein is unstable.*
+                * 🔴 **Red:** Polar (Water-loving).
+                * 🔵 **Blue:** Hydrophobic (Oily/Sticky).
             """)
 
             st.markdown("##### **D. Lattice (Crowding)**")
@@ -438,8 +437,8 @@ else:
                 view.setStyle({'cartoon': {'colorscheme': {'prop': 'b', 'gradient': 'rwb', 'min': 0, 'max': 100}}})
                 st.caption("🔴 Red = Conserved | 🔵 Blue = Variable")
             elif "Physics" in view_mode:
-                view.setStyle({'cartoon': {'colorscheme': {'prop': 'b', 'gradient': 'go', 'min': 0, 'max': 100}}})
-                st.caption("🟠 Orange = Hydrophobic | 🟢 Green = Polar")
+                view.setStyle({'cartoon': {'colorscheme': {'prop': 'b', 'gradient': 'rwb', 'min': 0, 'max': 100}}})
+                st.caption("🔴 Red = Polar | 🔵 Blue = Hydrophobic")
 
         surface_offset = -15.0 - linker_len
         surface_pdb = vis_engine.generate_topology(base_smiles, shape=topology, density=density, z_offset=surface_offset)

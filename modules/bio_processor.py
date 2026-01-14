@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from Bio.PDB import PDBList, MMCIFParser, ShrakeRupley, PDBIO, PDBParser
+from Bio.PDB.Polypeptide import is_aa
+from modules.evolutionary_engine import EvolutionaryEngine
 
-# Eisenberg Hydrophobicity Scale (Normalized)
-# Values range from -1.76 (Arg) to 0.73 (Ile)
 HYDROPHOBICITY_SCALE = {
     'ILE': 0.73, 'PHE': 0.61, 'VAL': 0.54, 'LEU': 0.53, 'TRP': 0.37,
     'MET': 0.26, 'ALA': 0.25, 'GLY': 0.16, 'CYS': 0.04, 'TYR': 0.02,
@@ -16,42 +16,67 @@ HYDROPHOBICITY_SCALE = {
     'ASN': -0.64, 'GLN': -0.69, 'ASP': -0.72, 'LYS': -1.10, 'ARG': -1.76
 }
 
-def _get_charge(resname):
-    if resname in ['ARG', 'LYS']: return 1
-    if resname in ['ASP', 'GLU']: return -1
-    if resname == 'HIS': return 0.1 
-    return 0
+AA3_TO_AA1 = {
+    'ALA': 'A', 'VAL': 'V', 'PHE': 'F', 'PRO': 'P', 'MET': 'M',
+    'ILE': 'I', 'LEU': 'L', 'ASP': 'D', 'GLU': 'E', 'LYS': 'K',
+    'ARG': 'R', 'SER': 'S', 'THR': 'T', 'TYR': 'Y', 'HIS': 'H',
+    'CYS': 'C', 'ASN': 'N', 'GLN': 'Q', 'TRP': 'W', 'GLY': 'G'
+}
 
-def _fetch_metadata(pdb_id):
-    """Fetches metadata using RCSB Data API."""
-    url = f"https://data.rcsb.org/rest/v1/core/entry/{pdb_id.lower()}"
-    try:
-        r = requests.get(url, timeout=3)
-        if r.status_code == 200:
-            data = r.json()
-            return {
-                "title": data.get("struct", {}).get("title", "Unknown Title"),
-                "resolution": data.get("rcsb_entry_info", {}).get("resolution_combined", [9.99])[0],
-                "method": data.get("exptl", [{}])[0].get("method", "Unknown"),
-            }
-    except:
-        pass
-    return {"title": "Unknown", "resolution": 9.99, "method": "Unknown"}
+def three_to_one(resname):
+    """Safely converts 3-letter code to 1-letter code."""
+    return AA3_TO_AA1.get(resname, 'X')
 
-@st.cache_data(ttl=3600)
-def get_conservation_scores(pdb_id):
+# --- HEURISTIC FALLBACK (Only used if API fails) ---
+def _calculate_heuristic(residue, min_dist, sasa):
+    PRIORS = {'CYS': 0.9, 'TRP': 0.9, 'HIS': 0.8, 'MET': 0.7}
+    seq_score = PRIORS.get(residue.resname, 0.3)
+    func_score = 1.0 if min_dist < 8.0 else 0.0
+    struct_score = 1.0 if sasa < 15.0 else 0.2
+    return (seq_score * 0.3) + (struct_score * 0.3) + (func_score * 0.4)
+
+
+@st.cache_data(show_spinner=False)
+def run_evolutionary_analysis(pdb_id, _structure):
     """
-    Simulates the 'Sequence Alignment' workflow.
-    1. Search RCSB for Homologs (>90% Identity).
-    2. Calculate Conservation (0.0 - 1.0).
+    Wrapper to run the EvolutionaryEngine with Caching.
+    Passing _structure (underscore) prevents streamlit from hashing the whole object.
+    We reconstruct the sequence string to hash.
     """
-    return None
+    # Extract Sequence from Structure
+    query_seq = ""
+    res_indices = [] # keep track of PDB IDs to map back
+    
+    for model in _structure:
+        for chain in model:
+            for residue in chain:
+                if is_aa(residue, standard=True):
+                    query_seq += three_to_one(residue.resname)
+                    res_indices.append(residue.id[1])
+            break # Process first chain only
+        break # Process first model only
+        
+    engine = EvolutionaryEngine()
+    cons_map_raw = engine.get_conservation_map(pdb_id, query_seq)
+    
+    if not cons_map_raw: return None
+    
+    # Remap 0-based index to PDB Residue ID
+    final_map = {}
+    for i, score in cons_map_raw.items():
+        if i < len(res_indices):
+            pdb_res_id = res_indices[i]
+            final_map[pdb_res_id] = score
+            
+    return final_map
 
-def _analyze_structure(structure, zinc_atoms, conservation_map=None):
+def _analyze_structure(structure, zinc_atoms, pdb_id):
     sr = ShrakeRupley()
-    try:
-        sr.compute(structure, level="R")
+    try: sr.compute(structure, level="R")
     except: pass 
+
+    real_cons_map = run_evolutionary_analysis(pdb_id, structure)
+    using_api = real_cons_map is not None
 
     data = []
     zn_vecs = [np.array(z.get_coord()) for z in zinc_atoms]
@@ -59,33 +84,32 @@ def _analyze_structure(structure, zinc_atoms, conservation_map=None):
     for model in structure:
         for chain in model:
             for residue in chain:
-                if residue.id[0] != " ": continue 
+                if not is_aa(residue, standard=True): continue
                 
                 sasa = getattr(residue, "sasa", 0.0)
-                
                 coords = np.array([0.,0.,0.])
+                if "CA" in residue: coords = residue["CA"].get_coord()
+                
                 min_dist = 999.0
+                if zn_vecs and "CA" in residue:
+                    dists = [np.linalg.norm(coords - z) for z in zn_vecs]
+                    min_dist = min(dists)
                 
-                if "CA" in residue:
-                    coords = residue["CA"].get_coord()
-                    if zn_vecs:
-                        dists = [np.linalg.norm(coords - z) for z in zn_vecs]
-                        min_dist = min(dists)
-                
-                cons_score = 0.5 
-                if min_dist < 8.0: cons_score = 0.95 
-                elif sasa < 5.0: cons_score = 0.85 
-                elif sasa > 50.0: cons_score = 0.1 
+                if using_api and residue.id[1] in real_cons_map:
+                    cons_score = real_cons_map[residue.id[1]] / 100.0
+                    method = "RCSB_Entropy"
+                else:
+                    cons_score = _calculate_heuristic(residue, min_dist, sasa)
+                    method = "Struct_Heuristic"
 
-                # Normalize Eisenberg scale to 0-100 for visualization
-                # Range: -1.76 to 0.73 (Span ~2.5)
+                # Normalize 0-100
+                cons_percent = min(100, max(0, cons_score * 100))
+                
                 h_raw = HYDROPHOBICITY_SCALE.get(residue.resname, 0.0)
                 h_score = (h_raw + 1.76) / 2.49 * 100
                 h_score = max(0, min(100, h_score))
 
-                # Default B-factor = Conservation for now
-                for atom in residue:
-                    atom.set_bfactor(cons_score * 100)
+                for atom in residue: atom.set_bfactor(cons_percent)
 
                 data.append({
                     "Residue": residue.resname,
@@ -95,7 +119,8 @@ def _analyze_structure(structure, zinc_atoms, conservation_map=None):
                     "Dist_to_Zinc": round(min_dist, 1),
                     "Charge": _get_charge(residue.resname),
                     "Conservation": round(cons_score, 2),
-                    "Hydrophobicity": round(h_score, 1), # NEW FIELD
+                    "Method": method,
+                    "Hydrophobicity": round(h_score, 1),
                     "coords": coords 
                 })
 
@@ -109,27 +134,37 @@ def _analyze_structure(structure, zinc_atoms, conservation_map=None):
     
     return df_surface, pdb_string
 
+def _get_charge(resname):
+    if resname in ['ARG', 'LYS']: return 1
+    if resname in ['ASP', 'GLU']: return -1
+    if resname == 'HIS': return 0.1 
+    return 0
+
+def _fetch_metadata(pdb_id):
+    url = f"https://data.rcsb.org/rest/v1/core/entry/{pdb_id.lower()}"
+    try:
+        r = requests.get(url, timeout=3)
+        if r.status_code == 200:
+            data = r.json()
+            return {
+                "title": data.get("struct", {}).get("title", "Unknown Title"),
+                "resolution": data.get("rcsb_entry_info", {}).get("resolution_combined", [9.99])[0],
+                "method": data.get("exptl", [{}])[0].get("method", "Unknown"),
+            }
+    except: pass
+    return {"title": "Unknown", "resolution": 9.99, "method": "Unknown"}
+
 def map_metric_to_bfactor(pdb_string, df_surface, metric_col):
-    """
-    Dynamically rewrites B-factors in the PDB string to visualize a specific metric.
-    This allows switching views (Conservation vs Hydrophobicity) instantly without re-parsing.
-    """
     parser = PDBParser(QUIET=True)
     stream = io.StringIO(pdb_string)
     structure = parser.get_structure("viz", stream)
-    
-    # Create map: ResidueID -> Value
-    # Assumes single chain or unique IDs for simplicity in this demo
     metric_map = dict(zip(df_surface['ID'], df_surface[metric_col]))
-    
     for model in structure:
         for chain in model:
             for residue in chain:
                 if residue.id[1] in metric_map:
                     val = metric_map[residue.id[1]]
-                    for atom in residue:
-                        atom.set_bfactor(val)
-    
+                    for atom in residue: atom.set_bfactor(val)
     io_w = PDBIO()
     io_w.set_structure(structure)
     out = io.StringIO()
@@ -144,21 +179,14 @@ def process_protein_structure(pdb_id: str):
     cif_path = pdbl.retrieve_pdb_file(pdb_id, pdir=temp_dir, file_format='mmCif', overwrite=False)
     
     parser = MMCIFParser(QUIET=True)
-    try:
-        structure = parser.get_structure(pdb_id, cif_path)
-    except Exception:
-        fallback_path = os.path.join(temp_dir, f"{pdb_id}.cif")
-        structure = parser.get_structure(pdb_id, fallback_path)
+    try: structure = parser.get_structure(pdb_id, cif_path)
+    except: 
+        fallback = os.path.join(temp_dir, f"{pdb_id}.cif")
+        structure = parser.get_structure(pdb_id, fallback)
 
-    zinc_atoms = []
-    for model in structure:
-        for chain in model:
-            for residue in chain:
-                for atom in residue:
-                    if atom.element == 'ZN':
-                        zinc_atoms.append(atom)
-
-    df_surface, pdb_string = _analyze_structure(structure, zinc_atoms)
+    zinc_atoms = [atom for atom in structure.get_atoms() if atom.element == 'ZN']
+    
+    df_surface, pdb_string = _analyze_structure(structure, zinc_atoms, pdb_id)
     zinc_coords = [z.get_coord().tolist() for z in zinc_atoms]
     
     return df_surface, pdb_string, zinc_coords, _fetch_metadata(pdb_id)
@@ -167,18 +195,9 @@ def process_pdb_string(pdb_string: str):
     parser = PDBParser(QUIET=True)
     stream = io.StringIO(pdb_string)
     structure = parser.get_structure("modified", stream)
-    
-    zinc_atoms = []
-    for model in structure:
-        for chain in model:
-            for residue in chain:
-                for atom in residue:
-                    if atom.element == 'ZN':
-                        zinc_atoms.append(atom)
-                        
-    df_surface, _ = _analyze_structure(structure, zinc_atoms)
+    zinc_atoms = [atom for atom in structure.get_atoms() if atom.element == 'ZN']
+    df_surface, _ = _analyze_structure(structure, zinc_atoms, "USER_UPLOAD")
     zinc_coords = [z.get_coord().tolist() for z in zinc_atoms]
-    
     return df_surface, pdb_string, zinc_coords
 
 def mutate_residue(pdb_string, residue_id_str, new_res_type):

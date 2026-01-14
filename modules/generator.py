@@ -48,9 +48,7 @@ class MaterialGenerator:
         """
         base_mol = Chem.MolFromSmiles(base_smiles)
         if not base_mol: return []
-        
-        # Add explicit hydrogens to ensure we replace real positions if needed
-        # (Though simple SMARTS often work better on implicit)
+    
         
         candidates = []
         modifiers = self.rxn_library.get(goal, [])
@@ -61,7 +59,6 @@ class MaterialGenerator:
         for mod in modifiers:
             rxn = AllChem.ReactionFromSmarts(mod['smarts'])
             
-            # Run Reaction
             try:
                 products = rxn.RunReactants((base_mol,))
             except Exception:
