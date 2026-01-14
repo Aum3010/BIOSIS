@@ -182,7 +182,10 @@ def draw_help_center():
             """)
             
 def draw_landing_page():
-    """Renders the detailed, product-grade onboarding dashboard."""        
+    """Renders the detailed, product-grade onboarding dashboard."""   
+    st.success("👈 **Get Started:** Configure your Protein (PDB) and Surface Material in the Sidebar to begin the simulation.")
+    st.markdown("---")
+
     col1, col2, col3 = st.columns(3)
     with col1:
         with st.container(border=True):
@@ -219,8 +222,6 @@ def draw_landing_page():
             👉 *Try: Go to `Export` to get your SHA-256 signed Compliance Report.*
             """)
 
-    st.markdown("---")
-    st.success("👈 **Get Started:** Configure your Protein (PDB) and Surface Material in the Sidebar to begin the simulation.")
 
 def generate_audit_report(pdb, surface, linker, ph, score, warnings):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
