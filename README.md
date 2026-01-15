@@ -6,7 +6,11 @@
 ![BIOSIS Banner](https://img.shields.io/badge/Status-Prototype_Ready-success) ![Python](https://img.shields.io/badge/Python-3.10-blue) ![Streamlit](https://img.shields.io/badge/Streamlit-1.32-red)
 
 # Deployed App
-👉 **Click here to launch:** [BIOSIS Live App](https://biosis.streamlit.app/)
+👉 **Click here to access the app:** [BIOSIS Live App](https://biosis.streamlit.app/)
+
+# Youtube Demo
+
+[![BIOSIS Demo Video](https://img.youtube.com/vi/vxqHmINRZO8/0.jpg)](https://youtu.be/vxqHmINRZO8)
 
 BIOSIS is a comprehensive platform that bridges **Molecular Biophysics** (Structure), **Evolutionary Biology** (Conservation), and **Surface Science** (Cheminformatics). It allows researchers to:
 
